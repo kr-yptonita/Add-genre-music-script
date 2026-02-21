@@ -255,6 +255,7 @@ def main():
     parser.add_argument("-p", "--path", type=str,
                         help="Path to an audio file or directory containing audio files",
                         required=True)
+    parser.add_argument("--no-recurse", action="store_true", help="Do not search in subdirectories")
     parser.add_argument("--no-spotify", action="store_true", help="Disable Spotify lookup")
     parser.add_argument("--no-lastfm",  action="store_true", help="Disable Last.fm lookup")
     parser.add_argument("--no-discogs", action="store_true", help="Disable Discogs lookup")
@@ -330,12 +331,19 @@ def main():
     results = []  # list of (filename, genre_or_None)
 
     if os.path.isdir(expanded_path):
-        for root, _, files in os.walk(expanded_path):
-            for filename in sorted(files):
-                if filename.lower().endswith(SUPPORTED_EXTENSIONS):
-                    file_path = os.path.join(root, filename)
+        if args.no_recurse:
+            for filename in sorted(os.listdir(expanded_path)):
+                file_path = os.path.join(expanded_path, filename)
+                if os.path.isfile(file_path) and filename.lower().endswith(SUPPORTED_EXTENSIONS):
                     logging.info('Found: ' + file_path)
                     results.append(process_file(providers, file_path))
+        else:
+            for root, _, files in os.walk(expanded_path):
+                for filename in sorted(files):
+                    if filename.lower().endswith(SUPPORTED_EXTENSIONS):
+                        file_path = os.path.join(root, filename)
+                        logging.info('Found: ' + file_path)
+                        results.append(process_file(providers, file_path))
     elif os.path.isfile(expanded_path) and expanded_path.lower().endswith(SUPPORTED_EXTENSIONS):
         results.append(process_file(providers, expanded_path))
     else:
